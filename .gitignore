@@ -1,0 +1,8 @@
+*.d
+*.o
+*Debug.jlink
+.DS_Store
+__init__.py
+build*
+cscope*
+ncscope*
