@@ -49,19 +49,21 @@ NOTE that the original README text from Nordic was moved to
         Call Stack (most recent call first):
           examples/light_switch/server/CMakeLists.txt:72 (add_ses_project)
 
-1. This is caused by `target_link_libraries` in `examples/light_switch/server/CMakeLists.txt`:
+1. This is caused by `m` added to `target_link_libraries`
+in `examples/light_switch/server/CMakeLists.txt`:
 
         target_link_libraries(${target}
             rtt_${PLATFORM}
             uECC_${PLATFORM}
             m)
 
-1. If the `m` linking flag is removed, SES generation succeeds:
+1. If the `m` link target is removed, SES generation succeeds:
 
         target_link_libraries(${target}
             rtt_${PLATFORM}
             uECC_${PLATFORM}
         #    m)
+            )
 
         $ cmake -DGENERATE_SES_PROJECTS=ON -GNinja ..
         # ... some output elided for clarity
