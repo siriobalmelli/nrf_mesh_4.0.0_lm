@@ -77,6 +77,18 @@ in `examples/light_switch/server/CMakeLists.txt`:
         in function `main':
         examples/light_switch/server/src/main.c:303: undefined reference to `exp'
 
+1. Attempts to use `set_target_link_options` do not work; both of these fail:
+
+        # try '-lm'
+        set_target_link_options(${target}
+            ${CMAKE_CURRENT_SOURCE_DIR}/linker/${PLATFORM}_${SOFTDEVICE}
+            -lm)
+
+        # try 'lm'
+        set_target_link_options(${target}
+            ${CMAKE_CURRENT_SOURCE_DIR}/linker/${PLATFORM}_${SOFTDEVICE}
+            lm)
+
 ## Conclusion
 
 Please consider either:
