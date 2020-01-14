@@ -1,34 +1,85 @@
-# Welcome to nRF5 SDK for Mesh
+# nRF5 SDK for mesh 4.0.0 : adding `math` to CMake build breaks SES project genetation
 
-The nRF5 SDK for Mesh is Nordic Semiconductor's implementation of the Bluetooth Mesh. It allows
-applications to use the features provided by the Bluetooth Mesh when running on Nordic's
-nRF5 Series chips.
+Adding `-lm` to the `CMakeLists.txt` of a project in the mesh stack 
+(here `light_switch_server` is used), breaks SES project file generation
+with `GENERATE_SES_PROJECTS`.
 
-This GitHub repository contains all the files from the official release zip package. It is provided for reference only, so that you can familiarize yourself with the repository structure and contents.
+The associated Nordic DevZone Ticket is [here](https://devzone.nordicsemi.com/f/nordic-q-a/53500/adding-math-library-with--lm-to-cmake-build-of-nrf-mesh-breaks-ses-project-generation/217130).
 
-For detailed and structured documentation, see the <a href="https://infocenter.nordicsemi.com/topic/struct_sdk/struct/sdk_mesh_latest.html" target="_blank">Mesh documentation website</a>.
+Reproduction sequence is below.
 
-## Repository structure
+NOTE that the original README text from Nordic was moved to
+[README_original.md](./README_original.md).
 
-The nRF5 SDK for Mesh repository is organized as follows:
-  - `bin` contains prebuilt binaries of all examples.
-  - `CMake` contains CMake setup files and utility functions.
-  - `doc` contains the main documentation and configuration files for Doxygen generation.
-	- Main documentation refers to Getting started, Introduction, Libraries, and Migration guide sections available on the <a href="https://infocenter.nordicsemi.com/topic/struct_sdk/struct/sdk_mesh_latest.html" target="_blank">Mesh documentation website</a>.
-  - `examples` contains example applications using the mesh stack and supporting modules.
-	- Each example contains its own readme file. This documentation is grouped in the **Examples** section on the Mesh documentation website.
-  - `external` contains external dependencies used by the mesh stack and examples (App timer, uECC, Segger RTT, SDK fix, and the SoftDevice).
-  - `mesh` contains the source code and unit tests for the mesh stack.
-  - `models` contains the source code for various models.
-	- You can find more information about the Simple OnOff model in `models/vendor/` and in **Getting started > Creating new models** page on the Mesh documentation website.
-  - `scripts` contains useful scripts, such as a parser and communication script for the serial interface provided by the mesh stack.
-	- You can fing more information about the Interactive PyACI script in the **Libraries > Serial interface library** section on the Mesh documentation website.
-  - `tools` contains tools useful for development.
-  
-  
-## Reporting issues
+## Reproduction
 
-We appreciate all bug reports and fixes. Please report all issues on
-<a href="https://devzone.nordicsemi.com" target="_blank">DevZone</a> and someone from
-technical support will ensure they are tracked internally. Currently, we do not have a system in place
-for integrating fixes through the public GitHub mirror. For this reason, we cannot accept any pull requests.
+1. Install tooling:
+
+    - gcc (this was built with `8.3.1 20190703 (release)`)
+    - cmake
+    - ninja
+    - jinja2
+    - markupsafe
+
+    Details outside the scope of this document, see
+    https://infocenter.nordicsemi.com/index.jsp?topic=%2Fstruct_sdk%2Fstruct%2Fsdk_mesh_latest.html
+
+1. Clone this repo and set up the build:
+
+        git clone https://github.com/siriobalmelli/nrf_mesh_4.0.0_lm.git
+        cd nrf_mesh_4.0.0_lm
+        mkdir build && cd build
+        cmake -GNinja ..
+        ninja nRF5_SDK  # will install nRF52 SDK in the directory above nrf_mesh_4.0.0_lm
+        cmake -DGENERATE_SES_PROJECTS=OFF -GNinja ..
+
+1. Build `light_switch_server` successfully:
+
+        $ ninja light_switch_server_nrf52832_xxAA_s132_7.0.1
+        # ... some output elided for clarity
+           text    data     bss     dec     hex filename
+         143248    1152   14672  159072   26d60 examples/light_switch/server/light_switch_server_nrf52832_xxAA_s132_7.0.1.elf
+
+1. Attempting to generate SES projects will fail:
+
+        $ cmake -DGENERATE_SES_PROJECTS=ON -GNinja ..
+        # ... some output elided for clarity
+        CMake Error at CMake/GenerateSESProject.cmake:23 (get_property):
+          get_property could not find TARGET m.  Perhaps it has not yet been created.
+        Call Stack (most recent call first):
+          examples/light_switch/server/CMakeLists.txt:72 (add_ses_project)
+
+1. This is caused by `target_link_libraries` in `examples/light_switch/server/CMakeLists.txt`:
+
+        target_link_libraries(${target}
+            rtt_${PLATFORM}
+            uECC_${PLATFORM}
+            m)
+
+1. If the `m` linking flag is removed, SES generation succeeds:
+
+        target_link_libraries(${target}
+            rtt_${PLATFORM}
+            uECC_${PLATFORM}
+        #    m)
+
+        $ cmake -DGENERATE_SES_PROJECTS=ON -GNinja ..
+        # ... some output elided for clarity
+        -- Configuring done
+        -- Generating done
+
+1. ... but this leads to link errors when trying to build `light_switch_server`:
+
+        $ ninja light_switch_server_nrf52832_xxAA_s132_7.0.1
+        # ... some output elided for clarity
+        in function `main':
+        examples/light_switch/server/src/main.c:303: undefined reference to `exp'
+
+## Conclusion
+
+Please consider either:
+
+- Patching the build system to properly generate SES files when linking with `-lm`
+    in `target_link_libraries` as above.
+- Providing a special target for the math library which plays nice with SES
+    project generation.
