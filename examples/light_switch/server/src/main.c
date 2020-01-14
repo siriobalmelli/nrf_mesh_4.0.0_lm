@@ -292,10 +292,16 @@ static void start(void)
     hal_led_blink_ms(LEDS_MASK, LED_BLINK_INTERVAL_MS, LED_BLINK_CNT_START);
 }
 
+#include <math.h>
+
 int main(void)
 {
     initialize();
     start();
+
+    /* use of math library which cannot be elided by compiler */
+    volatile double trouble = exp(3.14159);
+    trouble = trouble;
 
     for (;;)
     {

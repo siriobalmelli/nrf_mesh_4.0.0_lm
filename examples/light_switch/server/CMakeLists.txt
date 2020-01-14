@@ -58,7 +58,8 @@ target_compile_definitions(${target} PUBLIC
 
 target_link_libraries(${target}
     rtt_${PLATFORM}
-    uECC_${PLATFORM})
+    uECC_${PLATFORM}
+    m)
 
 create_hex(${target})
 add_flash_target(${target})
