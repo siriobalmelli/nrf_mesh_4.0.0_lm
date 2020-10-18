@@ -1,4 +1,4 @@
-# nRF5 SDK for mesh 4.0.0 : adding `math` to CMake build breaks SES project genetation
+# nRF5 SDK for mesh 4.0.0 : adding `math` to CMake build breaks SES project generation
 
 Adding `-lm` to the `CMakeLists.txt` of a project in the mesh stack 
 (here `light_switch_server` is used), breaks SES project file generation
